@@ -4,6 +4,7 @@ require 'base62'
 require 'uri'
 
 $LOAD_PATH.unshift(File.dirname(__FILE__))
+require 'packet'
 require 'player'
 
 class Server
@@ -93,8 +94,14 @@ maxplayers = 0"
     Thread.fork do
       loop do
         Thread.start(@listener.accept) do |client|
-          data = PacketParser.parse(client.read)
-          puts "#{data[0]} attempted connection from #{client.addr.last}"
+          n, m = @cfg["name"], @cfg["motd"]
+          # It appears that you need to send a server ID packet before the client sends anything over?
+          client.write "\x007#{n}                                                          #{m}                                                          \x64"
+          # Receive the "join packet" from the player (http://www.minecraftwiki.net/wiki/Classic_server_protocol#Client_.E2.86.92_Server_packets)
+          d = client.read
+          puts d
+          # Don't think this is mandatory
+          client.close
         end
       end
     end
